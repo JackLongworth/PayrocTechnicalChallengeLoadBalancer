@@ -60,12 +60,12 @@ This is the basic core design of this load balancer.
 ---
 
 ### ▶️ Example: Minimal Run
-export LB_BACKENDS=localhost:9001,localhost:9002  
-java -jar target/loadbalancer-jar-with-dependencies.jar  
+`export LB_BACKENDS=localhost:9001,localhost:9002`  
+`java -jar target/loadbalancer-jar-with-dependencies.jar`  
 
 ### ▶️ Example: Configuration with docker
-docker build -t load-balancer .
-docker run -e LB_BACKENDS=localhost:9001 -e LB_PORT=1234 -e LB_STRATEGY=FIRST_AVAILABLE -e LB_HEALTH_CHECK_INTERVAL_MS=10000 -e LB_HEALTH_CHECK_TIMEOUT_MS=3000 -p 8080:1234 load-balancer
+`docker build -t load-balancer .`  
+`docker run -e LB_BACKENDS=localhost:9001 -e LB_PORT=1234 -e LB_STRATEGY=FIRST_AVAILABLE -e LB_HEALTH_CHECK_INTERVAL_MS=10000 -e LB_HEALTH_CHECK_TIMEOUT_MS=3000 -p 8080:1234 load-balancer`
 - Note: The LB_PORT is the mapping to the docker containers internal port (so not really needed unless in some very special case)
 - Note: Also using localhost backends won't work as they would need to be in the docker container, you'd need to have the connections being made from the docker to an external service
 💡 If LB_BACKENDS is not set, the load balancer will fail to start.
