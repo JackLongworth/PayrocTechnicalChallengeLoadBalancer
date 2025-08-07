@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class TcpLoadBalancer implements LoadBalancer {
 
+    private ServerSocket serverSocket;
+
     private final AtomicInteger activeConnections = new AtomicInteger(0);
 
     private final int port;
@@ -48,12 +50,15 @@ public class TcpLoadBalancer implements LoadBalancer {
 
         Backend target = selectBackend();
 
-        if (!allowedByRateLimiter(client) || target == null) return;
+        if (!allowedByRateLimiter(client) || target == null) {
+            return;
+        }
 
         try (Socket backend = new Socket()) {
             backend.connect(target.getAddress());
             target.getConnections().incrementAndGet();
 
+            log.info("Connecting client and backend");
             BidirectionalConnection connection = new BidirectionalConnection(client, backend);
             connection.start();
             target.getConnections().decrementAndGet();
@@ -89,14 +94,17 @@ public class TcpLoadBalancer implements LoadBalancer {
 
     @Override
     public void run() {
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+        running = true;
+        HealthChecker healthChecker = new HealthChecker(backends, healthCheckInterval, healthCheckTimeout);
+        try {
+            serverSocket = new ServerSocket(port);
             log.info("Load balancer listening on port {}", port);
 
-            HealthChecker healthChecker = new HealthChecker(backends, healthCheckInterval, healthCheckTimeout);
-            Thread healthCheckerThread = Thread.startVirtualThread(healthChecker);
+            Thread.startVirtualThread(healthChecker);
 
             while (running && !Thread.interrupted()) {
                 Socket client = serverSocket.accept();
+                log.info("Accepted connection");
 
                 if (activeConnections.incrementAndGet() > maxConnections) {
                     log.warn("Connection refused: too many active connections ({})", activeConnections.get());
@@ -113,14 +121,22 @@ public class TcpLoadBalancer implements LoadBalancer {
                     }
                 });
             }
-            healthCheckerThread.interrupt();
         } catch (IOException e) {
             log.error("Couldn't open socket : {}", e.getMessage());
+            healthChecker.stop();
+            this.stop();
         }
     }
 
     @Override
     public void stop() {
         running = false;
+        try {
+            if (serverSocket != null) {
+                serverSocket.close(); // unblocks accept()
+            }
+        } catch (IOException e) {
+            log.warn("Failed to close server socket: {}", e.getMessage());
+        }
     }
 }

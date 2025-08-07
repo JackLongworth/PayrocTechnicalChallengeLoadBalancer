@@ -10,7 +10,6 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,11 +36,16 @@ public class LeastConnectionsSelectionStrategyTest {
             mockBackends.add(mockBackend);
         }
 
-        Map.Entry<InetSocketAddress, Integer> expected = connections.entrySet()
+        int leastAmountOfConnections = connections.values()
                 .stream()
-                .min(Map.Entry.comparingByValue())
-                .orElseThrow();
+                .min(Integer::compare)
+                .orElse(0);
 
-        assertEquals(expected.getKey(), leastConnectionsSelectionStrategy.select(mockBackends).getAddress());
+        List<InetSocketAddress> addressesWithLeastConnections = connections.entrySet().stream()
+                .filter(e -> e.getValue() == leastAmountOfConnections)
+                .map(Map.Entry::getKey)
+                .toList();
+
+        assert(addressesWithLeastConnections.contains(leastConnectionsSelectionStrategy.select(mockBackends).getAddress()));
     }
 }

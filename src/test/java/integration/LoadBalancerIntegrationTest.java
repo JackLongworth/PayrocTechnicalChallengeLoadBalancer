@@ -17,26 +17,32 @@ public class LoadBalancerIntegrationTest {
 
     static final int BOOT_TIME = 500;
 
-    static List<EchoServer> echoServers = new ArrayList<>();
+    static List<EchoServer> mockBackends = new ArrayList<>();
+
+    static LoadBalancer loadBalancer;
 
     private static Config config;
 
-    @BeforeAll
-    public static void setup() throws InterruptedException {
+    @BeforeEach
+    public void setup() throws InterruptedException {
         config = ConfigParser.parseEnvironmentVariablesToConfig();
+
+        mockBackends.clear();
 
         for (Backend backends : config.getBackends()) {
             int backendPort = backends.getAddress().getPort();
             EchoServer echoServer = new EchoServer(backendPort);
-            echoServers.add(echoServer);
-            Thread.ofVirtual().start(echoServer);
+            Thread.startVirtualThread(echoServer);
+
+            mockBackends.add(echoServer);
         }
 
-        Thread.sleep(2000);
+        Thread.sleep(BOOT_TIME);
 
-        LoadBalancer loadBalancer = new TcpLoadBalancer(config);
+        if (loadBalancer == null) {
+            loadBalancer = new TcpLoadBalancer(config);
+        }
         Thread.startVirtualThread(loadBalancer);
-
     }
 
     @Test
@@ -44,7 +50,7 @@ public class LoadBalancerIntegrationTest {
         // Give LB and echo time to boot if needed
         Thread.sleep(BOOT_TIME);
 
-        for (int i = 0; i < echoServers.size(); i++) {
+        for (int i = 0; i < mockBackends.size(); i++) {
             String message = "ping";
 
             String response = TestClient.sendAndReceive("localhost", config.getPort(), message);
@@ -55,24 +61,26 @@ public class LoadBalancerIntegrationTest {
     @Test
     public void oneBackendGoesDown() throws Exception {
         // Give LB and echo time to boot if needed
-        Thread.sleep(config.getHealthCheckInterval().toMillis() * 2);
+        Thread.sleep(BOOT_TIME);
 
-        EchoServer server = echoServers.get(1);
+        EchoServer server = mockBackends.get(1);
         server.stop();
 
         Thread.sleep(config.getHealthCheckInterval().toMillis() * 2);
 
-        for (int i = 0; i < config.getBackends().size() - 1; i++) {
+        for (int i = 0; i < mockBackends.size() - 1; i++) {
             String message = "ping";
             String response = TestClient.sendAndReceive("localhost", config.getPort(), message);
 
-            assert(response.startsWith(message) && !response.endsWith("9002"));
+            assert(response.startsWith(message) && !response.endsWith(Integer.toString(server.getAddress().getPort())));
         }
     }
 
-    @AfterAll
-    public static void shutdownServers() {
-        for (EchoServer server : echoServers) {
+    @AfterEach
+    public void shutDownLoadBalancerAndServers() {
+        loadBalancer.stop();
+
+        for (EchoServer server : mockBackends) {
             server.stop();
         }
     }

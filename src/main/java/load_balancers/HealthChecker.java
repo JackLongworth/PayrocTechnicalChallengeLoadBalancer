@@ -15,10 +15,16 @@ public class HealthChecker implements Runnable {
     private final Duration interval;
     private final Duration timeout;
 
+    private boolean running = true;
+
     public HealthChecker(List<Backend> backends, Duration interval, Duration timeout) {
         this.backends = backends;
         this.interval = interval;
         this.timeout = timeout;
+    }
+
+    public void stop() {
+        running = false;
     }
 
     // Since this is a virtual thread it will just be 'parked' when it sleeps so it's not technically busy waiting
@@ -26,7 +32,7 @@ public class HealthChecker implements Runnable {
     @Override
     public void run() {
         log.info("Health Checker running...");
-        while (!Thread.currentThread().isInterrupted()) {
+        while (running && !Thread.currentThread().isInterrupted()) {
             for (Backend backend : backends) {
                 boolean previouslyHealthy = backend.isHealthy();
 

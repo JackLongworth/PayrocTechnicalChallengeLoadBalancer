@@ -114,6 +114,7 @@
                     </systemProperties>
                     <environmentVariables>
                         <LB_BACKENDS>localhost:9001,localhost:9002,localhost:9003</LB_BACKENDS>
+                        <LB_HEALTH_CHECK_INTERVAL_MS>2500</LB_HEALTH_CHECK_INTERVAL_MS>
                     </environmentVariables>
                 </configuration>
             </plugin>

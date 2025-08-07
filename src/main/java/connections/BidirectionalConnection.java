@@ -43,6 +43,7 @@ public class BidirectionalConnection {
 
     private void stream(Socket from, Socket to) {
         try {
+            log.info("Streaming data {} -> {}", from.getInetAddress(), to.getRemoteSocketAddress());
             InputStream in = from.getInputStream();
             OutputStream out = to.getOutputStream();
             in.transferTo(out);

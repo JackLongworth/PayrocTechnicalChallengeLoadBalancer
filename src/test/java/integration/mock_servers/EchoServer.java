@@ -34,13 +34,13 @@ public class EchoServer extends Backend implements Runnable {
         }
     }
 
-
     @Override
     public void run() {
-        log.info("Echo server running on port: {}", this.getAddress().getPort());
-        try (ServerSocket serverSocket = new ServerSocket(this.getAddress().getPort())) {
-            this.serverSocket = serverSocket;
-            while (running || !Thread.currentThread().isInterrupted()) {
+        running = true;
+        log.info("Echo server starting on port: {}", this.getAddress().getPort());
+        try {
+            serverSocket = new ServerSocket(this.getAddress().getPort());
+            while (running && !Thread.currentThread().isInterrupted()) {
                 Socket socket = serverSocket.accept();
                 log.info("Echo server port {} connection from {}", this.getAddress().getPort(), socket.getRemoteSocketAddress());
                 Thread.startVirtualThread(() -> {
@@ -71,7 +71,7 @@ public class EchoServer extends Backend implements Runnable {
                 });
             }
         } catch (Exception e) {
-            System.err.println("Echo server failed: " + e.getMessage());
+            log.error("Echo server failed: {}", e.getMessage());
         }
     }
 }
