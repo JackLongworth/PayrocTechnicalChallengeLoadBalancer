@@ -1,4 +1,4 @@
-package unit;
+package unit.selection_strategies;
 
 
 import connections.Backend;
@@ -19,7 +19,7 @@ public class RoundRobinSelectionStrategyTest {
     BackendSelectionStrategy roundRobin = new RoundRobinSelectionStrategy();
 
     @Test
-    public void testSelection() {
+    public void selectOneBackend() {
         List<Backend> mockBackends = new ArrayList<>();
 
         final int MAX = 10;

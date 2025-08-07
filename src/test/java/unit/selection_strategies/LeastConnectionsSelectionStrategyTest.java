@@ -1,4 +1,4 @@
-package unit;
+package unit.selection_strategies;
 
 import ch.qos.logback.core.testUtil.RandomUtil;
 import connections.Backend;
@@ -19,7 +19,7 @@ public class LeastConnectionsSelectionStrategyTest {
     BackendSelectionStrategy leastConnectionsSelectionStrategy = new LeastConnectionsSelectionStrategy();
 
     @Test
-    void testSelection() {
+    void selectOneBackend() {
         List<Backend> mockBackends = new ArrayList<>();
 
         final int MAX = 10;

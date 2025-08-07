@@ -3,6 +3,7 @@ package config;
 import connections.Backend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rate_limiters.RateLimiter;
 import selection_strategies.BackendSelectionStrategy;
 import selection_strategies.FirstAvailableSelectionStrategy;
 import selection_strategies.LeastConnectionsSelectionStrategy;
@@ -22,12 +23,20 @@ public class ConfigParser {
     private static final String HEALTH_CHECK_INTERVAL_ENV_VAR = "LB_HEALTH_CHECK_INTERVAL_MS";
     private static final String HEALTH_CHECK_TIMEOUT_ENV_VAR = "LB_HEALTH_CHECK_TIMEOUT_MS";
     private static final String SELECTION_STRATEGY_ENV_VAR = "LB_STRATEGY";
+    private static final String MAX_CONNECTIONS_PER_IP_ENV_VAR = "LB_RATE_LIMIT_MAX";
+    private static final String RATE_LIMIT_WINDOW_ENV_VAR = "LB_RATE_LIMIT_WINDOW_MS";
+    private static final String MAX_CONNECTIONS_ENV_VAR = "LB_MAX_CONNECTIONS";
 
     private static final int DEFAULT_HOST_PORT = 8080;
     private static final int DEFAULT_HEALTH_CHECK_INTERVAL_MS = 5000;
     private static final int DEFAULT_HEALTH_CHECK_TIMEOUT_MS = 1000;
 
     private static final BackendSelectionStrategy DEFAULT_SELECTION_STRATEGY = new RoundRobinSelectionStrategy();
+
+    private static final int DEFAULT_MAX_CONNECTIONS_PER_IP = 100;
+    private static final int DEFAULT_RATE_LIMIT_WINDOW_MS = 60000;
+
+    private static final int DEFAULT_MAX_CONNECTIONS = 50000;
 
     private enum SelectionStrategy {
         ROUND_ROBIN, LEAST_CONNECTIONS, FIRST_AVAILABLE
@@ -40,6 +49,8 @@ public class ConfigParser {
         config.setHealthCheckInterval(parseHealthCheckInterval());
         config.setHealthCheckTimeout(parseHealthCheckTimeout());
         config.setSelectionStrategy(parseBackendSelectionStrategy());
+        config.setRateLimiter(parseRateLimiter());
+        config.setMaxConnections(parseMaxConnections());
 
         return config;
     }
@@ -89,25 +100,6 @@ public class ConfigParser {
     }
 
 
-    private static int parseIntegerEnvironmentVariableOrDefault(String environmentVariable, int defaultValue) {
-        int result = defaultValue;
-
-        if (System.getenv().containsKey(environmentVariable)) {
-            try {
-                result = Integer.parseInt(System.getenv().get(environmentVariable));
-            } catch (NumberFormatException nfe) {
-                // Clearly the command line or environment is faulty so better to exit than continue with default and
-                // cause confusion
-                log.error("Environment variable {} is not a valid integer. Exiting...", environmentVariable);
-                System.exit(1);
-            }
-        } else {
-            log.error("Environment variable {} cannot be found. Using default value of {}", environmentVariable, defaultValue);
-        }
-
-        return result;
-    }
-
     private static BackendSelectionStrategy parseBackendSelectionStrategy() {
         BackendSelectionStrategy result;
 
@@ -124,6 +116,37 @@ public class ConfigParser {
         } else {
             log.warn("No definition found for {} so using default value", SELECTION_STRATEGY_ENV_VAR);
             result = DEFAULT_SELECTION_STRATEGY;
+        }
+
+        return result;
+    }
+
+    private static RateLimiter parseRateLimiter() {
+        int maxConnectionsPerIp = parseIntegerEnvironmentVariableOrDefault(MAX_CONNECTIONS_PER_IP_ENV_VAR, DEFAULT_MAX_CONNECTIONS_PER_IP);
+        int rateLimitingWindow = parseIntegerEnvironmentVariableOrDefault(RATE_LIMIT_WINDOW_ENV_VAR, DEFAULT_RATE_LIMIT_WINDOW_MS);
+
+        return new RateLimiter(maxConnectionsPerIp, rateLimitingWindow);
+    }
+
+    private static int parseMaxConnections() {
+        return parseIntegerEnvironmentVariableOrDefault(MAX_CONNECTIONS_ENV_VAR, DEFAULT_MAX_CONNECTIONS);
+    }
+
+
+    private static int parseIntegerEnvironmentVariableOrDefault(String environmentVariable, int defaultValue) {
+        int result = defaultValue;
+
+        if (System.getenv().containsKey(environmentVariable)) {
+            try {
+                result = Integer.parseInt(System.getenv().get(environmentVariable));
+            } catch (NumberFormatException nfe) {
+                // Clearly the command line or environment is faulty so better to exit than continue with default and
+                // cause confusion
+                log.error("Environment variable {} is not a valid integer. Exiting...", environmentVariable);
+                System.exit(1);
+            }
+        } else {
+            log.error("Environment variable {} cannot be found. Using default value of {}", environmentVariable, defaultValue);
         }
 
         return result;

@@ -4,6 +4,7 @@ import connections.Backend;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import rate_limiters.RateLimiter;
 import selection_strategies.BackendSelectionStrategy;
 
 import java.time.Duration;
@@ -19,4 +20,8 @@ public class Config {
     private Duration healthCheckTimeout;
 
     private BackendSelectionStrategy selectionStrategy;
+
+    private RateLimiter rateLimiter;
+
+    private int maxConnections;
 }

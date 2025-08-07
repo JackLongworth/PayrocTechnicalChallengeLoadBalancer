@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim
 WORKDIR /loadbalancer
 
 # Copy your JAR file into the container
-COPY target/PayrocLoadBalancerTechnicalChallenge-1.0-SNAPSHOT-jar-with-dependencies.jar loadbalancer.jar
+COPY target/loadbalancer-jar-with-dependencies.jar loadbalancer.jar
 
 # Run the app
 ENTRYPOINT ["java", "-jar", "loadbalancer.jar"]

@@ -13,10 +13,12 @@ public class HealthChecker implements Runnable {
 
     private final List<Backend> backends;
     private final Duration interval;
+    private final Duration timeout;
 
-    public HealthChecker(List<Backend> backends, Duration interval) {
+    public HealthChecker(List<Backend> backends, Duration interval, Duration timeout) {
         this.backends = backends;
         this.interval = interval;
+        this.timeout = timeout;
     }
 
     // Since this is a virtual thread it will just be 'parked' when it sleeps so it's not technically busy waiting
@@ -29,7 +31,7 @@ public class HealthChecker implements Runnable {
                 boolean previouslyHealthy = backend.isHealthy();
 
                 try (Socket testSocket = new Socket()) {
-                    testSocket.connect(backend.getAddress(), 1000); // 1s timeout
+                    testSocket.connect(backend.getAddress(), Long.valueOf(timeout.toMillis()).intValue());
                     backend.setHealthy(true);
                     log.debug("Backend {} is up", backend.getAddress());
                 } catch (IOException e) {

@@ -17,6 +17,7 @@ public class Main {
             loadBalancerThread.join();
         } catch (InterruptedException e) {
             log.error("Load balancer thread was interrupted whilst trying to join");
+            loadBalancer.stop();
         }
     }
 }

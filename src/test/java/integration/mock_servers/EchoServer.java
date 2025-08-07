@@ -1,25 +1,26 @@
 package integration.mock_servers;
 
+import connections.Backend;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 @Slf4j
-public class EchoServer implements Runnable {
+public class EchoServer extends Backend implements Runnable {
 
-    private final int port;
     private ServerSocket serverSocket;
 
     private boolean running = true;
 
     public EchoServer(int port) {
-        this.port = port;
+        super(new InetSocketAddress("localhost", port));
     }
 
     public void stop() {
@@ -36,12 +37,12 @@ public class EchoServer implements Runnable {
 
     @Override
     public void run() {
-        log.info("Echo server running on port: {}", port);
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+        log.info("Echo server running on port: {}", this.getAddress().getPort());
+        try (ServerSocket serverSocket = new ServerSocket(this.getAddress().getPort())) {
             this.serverSocket = serverSocket;
             while (running || !Thread.currentThread().isInterrupted()) {
                 Socket socket = serverSocket.accept();
-                log.info("Echo server port {} connection from {}", port, socket.getRemoteSocketAddress());
+                log.info("Echo server port {} connection from {}", this.getAddress().getPort(), socket.getRemoteSocketAddress());
                 Thread.startVirtualThread(() -> {
                     try (socket) {
                         InputStream in = socket.getInputStream();
@@ -60,7 +61,7 @@ public class EchoServer implements Runnable {
                         }
 
                         String text = buffer.toString(StandardCharsets.UTF_8);
-                        String response = String.format("%s from port %d", text, port);
+                        String response = String.format("%s from port %d", text, this.getAddress().getPort());
 
                         out.write(response.getBytes(StandardCharsets.UTF_8));
                         out.flush();

@@ -40,11 +40,11 @@ public class LoadBalancerIntegrationTest {
     }
 
     @Test
-    public void simplePingTest() throws Exception {
+    public void allBackendsOk() throws Exception {
         // Give LB and echo time to boot if needed
         Thread.sleep(BOOT_TIME);
 
-        for (Backend backend : config.getBackends()) {
+        for (int i = 0; i < echoServers.size(); i++) {
             String message = "ping";
 
             String response = TestClient.sendAndReceive("localhost", config.getPort(), message);
@@ -52,20 +52,21 @@ public class LoadBalancerIntegrationTest {
         }
     }
 
-    @Disabled
-    public void simpleHealthCheckerTest() throws Exception {
+    @Test
+    public void oneBackendGoesDown() throws Exception {
         // Give LB and echo time to boot if needed
-        Thread.sleep(config.getHealthCheckTimeout().toMillis() * 2);
+        Thread.sleep(config.getHealthCheckInterval().toMillis() * 2);
 
         EchoServer server = echoServers.get(1);
         server.stop();
 
-        Thread.sleep(config.getHealthCheckTimeout().toMillis() * 2);
+        Thread.sleep(config.getHealthCheckInterval().toMillis() * 2);
 
         for (int i = 0; i < config.getBackends().size() - 1; i++) {
             String message = "ping";
             String response = TestClient.sendAndReceive("localhost", config.getPort(), message);
-            assert(!response.endsWith("9002"));
+
+            assert(response.startsWith(message) && !response.endsWith("9002"));
         }
     }
 
