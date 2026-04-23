@@ -74,3 +74,6 @@ This is the basic core design of this load balancer.
 
 For the purposes of just having a look at how this works for yourselves quickly you can just create a run config in intellij. You could use ncat to host some backends locally.   
 Then you can use putty instances or alternative to send raw data to the load balancer and manually checked which ncat instance picked up the input. This isn't realistic as the nature of TCP connections and layer 4 load balancers are that the connect won't remain open for so long.
+
+## License
+This project is licensed under the MIT License.
